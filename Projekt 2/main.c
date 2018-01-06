@@ -281,6 +281,9 @@ int main(void)
 		BSP_LCD_DisplayStringAt(BSP_LCD_GetXSize()/32, up_buttons_y   - 20, "Wartosc zadana:", LEFT_MODE);
 		BSP_LCD_DisplayStringAt(BSP_LCD_GetXSize()/32, down_buttons_y - 20, "Sterowanie", LEFT_MODE);
 		
+		BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+	  BSP_LCD_DrawLine(x, zakres_y_min, x, zakres_y_max);
+		
 	
 	/* Buttons data */
 		button_width  = BSP_LCD_GetXSize() * 0.15; // 	/ 15; 
@@ -292,25 +295,7 @@ int main(void)
 		up_buttons_y   = BSP_LCD_GetYSize() * 0.40; 	// - button_height;
 		down_buttons_y = BSP_LCD_GetYSize() * 0.50;  // - button_height;
 	
-	/* Displaying buttons	*/
-		BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-	  BSP_LCD_DrawLine(x, zakres_y_min, x, zakres_y_max);
-		
-		BSP_LCD_DrawRect(left_buttons_x , up_buttons_y  , button_width, button_height);		// lewy górny
-		sprintf(text," + 1 ");
-		BSP_LCD_DisplayStringAt(left_buttons_x + 10, up_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
-		
-		BSP_LCD_DrawRect(left_buttons_x , down_buttons_y, button_width, button_height);		// lewy dolny
-		sprintf(text," + 1 ");
-		BSP_LCD_DisplayStringAt(left_buttons_x + 10, down_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
-		
-		BSP_LCD_DrawRect(right_buttons_x, up_buttons_y  , button_width, button_height);		// prawy górny
-		sprintf(text," - 1 ");
-		BSP_LCD_DisplayStringAt(right_buttons_x + 10, up_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
-		
-		BSP_LCD_DrawRect(right_buttons_x, down_buttons_y, button_width, button_height);		// prawy dolny
-		sprintf(text," - 1 ");
-		BSP_LCD_DisplayStringAt(right_buttons_x + 10, down_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
+	
 	
 	
 	
@@ -367,8 +352,7 @@ int main(void)
 			{			
 				while(TS_State.touchDetected);
 				Sterowanie++;
-				if(Sterowanie >   50.0f) Sterowanie =  50.0f;
-				if(Sterowanie <  -50.0f) Sterowanie = -50.0f;				
+				if(Sterowanie >   50.0f) Sterowanie =  50.0f;			
 			}
 			else if( Touched_Button(STER_MINUS) && (control_mode == MANUAL) )
 			{
@@ -395,10 +379,15 @@ int main(void)
 //		BSP_LCD_DisplayStringAt( 10, 50, (uint8_t*)"TIM5", LEFT_MODE);
 	
 		
-		/* LED1 and PushButton usage */
-		if(BSP_PB_GetState(BUTTON_TAMPER)) control_mode = AUTO;
-		else 															 control_mode = MANUAL;
-			
+		/* PushButton usage */
+		if(BSP_PB_GetState(BUTTON_TAMPER))
+		{
+			while(BSP_PB_GetState(BUTTON_TAMPER));
+			if(control_mode == AUTO)
+				control_mode = MANUAL;
+			else
+				control_mode = AUTO;
+		}												 
 		
 		/* Displaying texts */
 		BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -419,6 +408,35 @@ int main(void)
 		if( control_mode == AUTO)	sprintf(text, "Tryb pracy: AUTO");
 		else 											sprintf(text, "Tryb pracy: MANUAL");
 		BSP_LCD_DisplayStringAt(200,10, (uint8_t*)text, LEFT_MODE);
+		
+		/* Displaying buttons	*/
+		BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+		if(control_mode == AUTO)
+			BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+		else
+			BSP_LCD_SetTextColor(LCD_COLOR_RED);
+	
+		BSP_LCD_DrawRect(left_buttons_x , up_buttons_y  , button_width, button_height);		// lewy górny
+		sprintf(text," + 1 ");
+		BSP_LCD_DisplayStringAt(left_buttons_x + 10, up_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
+		
+		BSP_LCD_DrawRect(right_buttons_x, up_buttons_y  , button_width, button_height);		// prawy górny
+		sprintf(text," - 1 ");
+		BSP_LCD_DisplayStringAt(right_buttons_x + 10, up_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
+
+		if(control_mode == AUTO)
+			BSP_LCD_SetTextColor(LCD_COLOR_RED);
+		else
+			BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+		
+		BSP_LCD_DrawRect(left_buttons_x , down_buttons_y, button_width, button_height);		// lewy dolny
+		sprintf(text," + 1 ");
+		BSP_LCD_DisplayStringAt(left_buttons_x + 10, down_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
+		
+		BSP_LCD_DrawRect(right_buttons_x, down_buttons_y, button_width, button_height);		// prawy dolny
+		sprintf(text," - 1 ");
+		BSP_LCD_DisplayStringAt(right_buttons_x + 10, down_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
+		
 		
 		
 		/* Displaying alarm */
@@ -604,6 +622,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		//	U_set = u;
 			Sterowanie = u;
 		}
+		
+		if(y < 24)
+			Temp_alarm = true;
+		else
+			Temp_alarm = false;
 		
 		Wart_zadana = Y_zad;
 		Wyjscie = y;
