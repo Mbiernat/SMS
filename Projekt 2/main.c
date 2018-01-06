@@ -166,6 +166,8 @@ uint16_t	y_wyj;
 uint16_t	y_ster;
 uint16_t	y_zad;
 
+uint16_t 	base_y;
+
 uint16_t button_width;
 uint16_t button_height;
 	
@@ -175,7 +177,7 @@ uint16_t right_buttons_x;
 uint16_t up_buttons_y;
 uint16_t down_buttons_y;
 
-//=================================
+/*=================================*/
 // Dodatkowe zmienne
 
 float Sterowanie;
@@ -185,8 +187,6 @@ float U_set;
 float Y_zad;
 
 bool Temp_alarm;
-
-//char * string;
 
 #define REAL_OBJ		0
 #define SIMULATION	1
@@ -264,47 +264,51 @@ int main(void)
 	//====================================================================================
 	
 	
-	// text
+	/*==============================================================*/
+	/* Text */
 	uint16_t y_text = BSP_LCD_GetYSize() / 20;
-	
+
 	uint16_t left_x_text = (uint16_t)BSP_LCD_GetXSize() / 4;
 	uint16_t right_x_text = 3 * (uint16_t)BSP_LCD_GetXSize() / 4;
-	
+
 	BSP_LCD_DrawVLine(BSP_LCD_GetXSize() / 2, 0, BSP_LCD_GetYSize());
-	
+
+	/*==============================================================*/
 	/* Displaying text */
-		BSP_LCD_SetTextColor(LCD_COLOR_RED);
-		BSP_LCD_DisplayStringAt(left_x_text, y_text, "PANEL STEROWANIA", LEFT_MODE);
-		BSP_LCD_DisplayStringAt(right_x_text, y_text, "PLOT AND DATA", LEFT_MODE);
-		
-		BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-		BSP_LCD_DisplayStringAt(BSP_LCD_GetXSize()/32, up_buttons_y   - 20, "Wartosc zadana:", LEFT_MODE);
-		BSP_LCD_DisplayStringAt(BSP_LCD_GetXSize()/32, down_buttons_y - 20, "Sterowanie", LEFT_MODE);
-		
-		BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-	  BSP_LCD_DrawLine(x, zakres_y_min, x, zakres_y_max);
-		
+	BSP_LCD_SetTextColor(LCD_COLOR_RED);
+	BSP_LCD_DisplayStringAt(left_x_text, y_text, "PANEL STEROWANIA", LEFT_MODE);
+	BSP_LCD_DisplayStringAt(right_x_text, y_text, "WYKRES I DANE", LEFT_MODE);
 	
+	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+	BSP_LCD_DisplayStringAt(BSP_LCD_GetXSize()/32, up_buttons_y   - 20, "Wartosc zadana:", LEFT_MODE);
+	BSP_LCD_DisplayStringAt(BSP_LCD_GetXSize()/32, down_buttons_y - 20, "Sterowanie", LEFT_MODE);
+	
+	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+	BSP_LCD_DrawLine(x, zakres_y_min, x, zakres_y_max);
+	
+	
+	/*==============================================================*/
 	/* Buttons data */
-		button_width  = BSP_LCD_GetXSize() * 0.15; // 	/ 15; 
-		button_height = BSP_LCD_GetYSize() * 0.10;	// 	/ 20;
-		
-		left_buttons_x  = (uint16_t)BSP_LCD_GetXSize * 0.05; 	// 	/ 4 - (button_width / 2);
-		right_buttons_x = (uint16_t)BSP_LCD_GetXSize * 0.30;		//	/ 4 - (button_width / 2);
-		
-		up_buttons_y   = BSP_LCD_GetYSize() * 0.40; 	// - button_height;
-		down_buttons_y = BSP_LCD_GetYSize() * 0.50;  // - button_height;
+	button_width  = BSP_LCD_GetXSize() * 0.15; // 	/ 15; 
+	button_height = BSP_LCD_GetYSize() * 0.10;	// 	/ 20;
 	
+	left_buttons_x  = (uint16_t)BSP_LCD_GetXSize * 0.05; 	// 	/ 4 - (button_width / 2);
+	right_buttons_x = (uint16_t)BSP_LCD_GetXSize * 0.30;		//	/ 4 - (button_width / 2);
 	
+	up_buttons_y   = BSP_LCD_GetYSize() * 0.40; 	// - button_height;
+	down_buttons_y = BSP_LCD_GetYSize() * 0.50;  // - button_height;
 	
-	
-	
+
+	/*==============================================================*/
+	/* Plot data */
 	plot_x_min = BSP_LCD_GetXSize() / 2;
 	plot_x_max = BSP_LCD_GetXSize();
 	plot_y_min = BSP_LCD_GetYSize() / 2;
 	plot_y_max = BSP_LCD_GetYSize() / 2;
 	
 	x = plot_x_min;
+	
+	base_y = (zakres_y_max + 3*zakres_y_min)/4;
 	
 	y_wyj = 0;
 	y_ster = 0;
@@ -315,7 +319,7 @@ int main(void)
 	
 	
 	
-	//=============================
+	/*===============================*/
 	// Init project vars
 	
 	mode = REAL_OBJ;
@@ -332,7 +336,7 @@ int main(void)
 //	
 //	int prev = 0;
 //	int act = 0;
-	//=============================
+	/*===============================*/
 	
   while (1)
 	{
@@ -373,12 +377,9 @@ int main(void)
 				if(Y_zad <  24.0f) Y_zad = 24.0f;
 			}
 		}
-		
-//		if(tims[5])BSP_LCD_SetTextColor(LCD_COLOR_BLACK); 
-//		else BSP_LCD_SetTextColor(LCD_COLOR_WHITE); 
-//		BSP_LCD_DisplayStringAt( 10, 50, (uint8_t*)"TIM5", LEFT_MODE);
 	
 		
+		/*==============================================================*/
 		/* PushButton usage */
 		if(BSP_PB_GetState(BUTTON_TAMPER))
 		{
@@ -389,26 +390,29 @@ int main(void)
 				control_mode = AUTO;
 		}												 
 		
+		/*==============================================================*/
 		/* Displaying texts */
 		BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
 	
 		sprintf(text,"Wart zadana: %f", Wart_zadana);
-		BSP_LCD_DisplayStringAt(100,10, (uint8_t*)text, LEFT_MODE);
+		BSP_LCD_DisplayStringAt(plot_x_min+10, y_text+10, (uint8_t*)text, LEFT_MODE);
 		
 		sprintf(text,"Wyjscie    : %f", Wyjscie);
-		BSP_LCD_DisplayStringAt(110,10, (uint8_t*)text, LEFT_MODE);
+		BSP_LCD_DisplayStringAt(plot_x_min+10, y_text+20, (uint8_t*)text, LEFT_MODE);
 		
 		sprintf(text,"Sterowanie: %f", Sterowanie);
-		BSP_LCD_DisplayStringAt(120,10, (uint8_t*)text, LEFT_MODE);
+		BSP_LCD_DisplayStringAt(plot_x_min+10, y_text+30, (uint8_t*)text, LEFT_MODE);
 		
 		if( mode == REAL_OBJ)	sprintf(text,"Czujnik sprawny. Sterowanie: obiekt");
 		else 									sprintf(text,"Awaria czujnika. Sterowanie: model");
-		BSP_LCD_DisplayStringAt(90,10, (uint8_t*)text, LEFT_MODE);
+		BSP_LCD_DisplayStringAt(plot_x_min+10, y_text+50, (uint8_t*)text, LEFT_MODE);
 		
 		if( control_mode == AUTO)	sprintf(text, "Tryb pracy: AUTO");
 		else 											sprintf(text, "Tryb pracy: MANUAL");
-		BSP_LCD_DisplayStringAt(200,10, (uint8_t*)text, LEFT_MODE);
+		BSP_LCD_DisplayStringAt(10, 100, (uint8_t*)text, LEFT_MODE);
 		
+		
+		/*==============================================================*/
 		/* Displaying buttons	*/
 		BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
 		if(control_mode == AUTO)
@@ -438,7 +442,7 @@ int main(void)
 		BSP_LCD_DisplayStringAt(right_buttons_x + 10, down_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
 		
 		
-		
+		/*==============================================================*/
 		/* Displaying alarm */
 		if(Temp_alarm)
 		{
@@ -457,17 +461,7 @@ int main(void)
 			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 			sprintf(text,"ALARM\nTemp. za niska!");
 			BSP_LCD_DisplayStringAt(200,40, (uint8_t*)text, LEFT_MODE);
-		}
-		
-	
-		/* Touch Screen and LCD usage */
-/*		BSP_TS_GetState(&TS_State);		
-		for(touch_index=0;touch_index<TS_State.touchDetected;++touch_index)
-		{ 
-			BSP_LCD_SetTextColor(ts_colors[touch_index]); 
-			BSP_LCD_FillCircle( TS_State.touchX[touch_index], TS_State.touchY[touch_index], 2);
-		}
-*/		
+		}	
 	}
 }
 
@@ -484,20 +478,20 @@ bool Touched_Button(int button)
 	switch(button)
 	{
 		case STER_PLUS:
-			if(x_left && y_down)	ret = true;		// w if() zdefiniowac obszar na ekranie w ktorym znajduje sie przycisk
-			else ret = false;
+			if(x_left && y_down)	ret = true;	
+			else 									ret = false;
 			break;
 		case STER_MINUS:
 			if(x_right && y_down)	ret = true;
-			else ret = false;
+			else 									ret = false;
 			break;
 		case ZAD_PLUS:
 			if(x_left && y_up)	ret = true;
-			else ret = false;
+			else 								ret = false;
 			break;
 		case ZAD_MINUS:
 			if(x_right && y_up)	ret = true;
-			else ret = false;
+			else 								ret = false;
 			break;
 		default:
 			break;
@@ -521,37 +515,27 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	// Wywolywane w chwili wcisniecia przycisku User
+	// Wywolywane w chwili wcisniecia przycisku User			
 }
 
-//============================
-// Zmienne dla regulatorów 
 
-// DMC
+
+/*===============================*/
+// Zmienne dla regulatora 
+
+
+float e;
+float u_past;
+
 float D;
 float Ke;
 float Ku;
 float Ku_mul_dUp[1];
 float dUp[1][1];
 
-//PID
-float T  = 0.05;
-float K  = 10;
-float Td = 0;
-float Ti = 999999999;
-	
-float r0;
-float r1;
-float r2;
 
-float e_past_1;
-float e_past_2;
 
-// WSPOLNE
-float e;
-float u_past;
-
-//===========================
+/*===============================*/
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if(htim->Instance == TIM2){
@@ -570,7 +554,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		
 		if(control_mode == MANUAL)
 		{
-			//u = U_set;
 			u = Sterowanie;
 		}
 		else if(control_mode == AUTO)
@@ -578,20 +561,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 			if(mode == SIMULATION)
 			{
 				//===================================================
-				// Regulator PID
+				// Symulacja obiektu
 				
-				e_past_2 = e_past_1;
-				e_past_1 = e;
 				
-				u_past = u;
-				
-				e = Y_zad - y;
-				
-				r2 = K*Td / T;
-				r1 = K*(T / (2*Ti) - (2*(Td / T)) - 1 );
-				r0 = K*(1+(T/(2*Ti))+(Td/T));
-				
-				u = r2 * e_past_2 + r1 * e_past_1 + r0 * e + u_past;
 				//===================================================
 			}
 			
@@ -618,8 +590,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				Ke = 2.8490e-04;
 				//===================================================
 			}
-			
-		//	U_set = u;
 			Sterowanie = u;
 		}
 		
@@ -630,6 +600,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		
 		Wart_zadana = Y_zad;
 		Wyjscie = y;
+		
 		
 		//============================================================================
 		
@@ -678,10 +649,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	{
 		x = (x == plot_x_max)? plot_x_min : x + 1;
 		
-//		y_wyj = zakres_y_min + (zakres_y_max - zakres_y_min - (adc_value/4095.0)*(zakres_y_max - zakres_y_min));
-		y_wyj = (zakres_y_min + zakres_y_max) / 2;				// przykladowa wartosc
-		y_ster = (zakres_y_min + zakres_y_max) / 2 + 20;	// przykladowa wartosc
-		y_zad = (zakres_y_min + zakres_y_max) / 2 - 20;		// przykladowa wartosc
+//		y_wyj  =  base_y 	 +   (Wyjscie/90.0)     * ((3*zakres_y_max + 5*zakres_y_min)/4);
+//		y_ster =  base_y 	 + 	 (Sterowanie/90.0)  * ((3*zakres_y_max + 5*zakres_y_min)/4);
+//		y_zad  =  base_y 	 - 	 (Wart_zadana/90.0) * ((3*zakres_y_max + 5*zakres_y_min)/4);
+
+		
+		y_wyj  = (zakres_y_max - zakres_y_min) / 4; 				//+ Wyjscie;
+		y_ster = (zakres_y_max - zakres_y_min) / 4 + 20;	  //+ (Sterowanie*(zakres_y_max - zakres_y_min))/100; 
+		y_zad  = (zakres_y_max - zakres_y_min) / 4 - 20;		//+ Wart_zadana;
 		
 		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 	  BSP_LCD_DrawLine(x, zakres_y_min, x, zakres_y_max);
@@ -690,6 +665,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		if(control_mode == AUTO)	BSP_LCD_DrawPixel(x, y_zad, LCD_COLOR_YELLOW);
 	}
 }
+float Sterowanie;
+float Wart_zadana;
+float Wyjscie;
+float U_set;
+float Y_zad;
 
 void HAL_LTDC_LineEvenCallback(LTDC_HandleTypeDef *hltdc){
 	// for lolz
