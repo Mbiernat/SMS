@@ -165,6 +165,20 @@ uint16_t down_buttons_y;
 
 
 /*=================================*/
+/* Alarm and failure variables */
+uint16_t alarm_x;
+uint16_t alarm_y;
+
+uint16_t sensor_err_x;
+uint16_t sensor_err_y;
+
+uint16_t modbus_err_x;
+uint16_t modbus_err_y; 
+
+uint16_t circle_rad;
+
+
+/*=================================*/
 /* Other variables */
 
 float Sterowanie;
@@ -175,6 +189,8 @@ float Y_zad;
 
 bool Temp_alarm;
 bool Temp_alarm_changed;
+bool Temp_sensor_fail;
+bool Temp_sensor_fail_changed;
 
 #define REAL_OBJ		0
 #define SIMULATION	1
@@ -300,6 +316,19 @@ int main(void)
 	
 	
 	/*===============================*/
+	/* Alarms and err data */
+	alarm_x = 200;
+	alarm_y = 20;
+
+	sensor_err_x = 200;
+	sensor_err_y = 20;
+
+	modbus_err_x = 200;
+	modbus_err_y = 20; 
+
+	circle_rad = 10;
+	
+	/*===============================*/
 	/* Other variables init */
 	
 	mode 				 = REAL_OBJ;
@@ -309,6 +338,9 @@ int main(void)
 	
 	Temp_alarm = false;
 	Temp_alarm_changed = false;
+	
+	Temp_sensor_fail = false;
+	Temp_sensor_fail_changed = false;
 		
 	control_mode_changed = false;
 	
@@ -396,8 +428,8 @@ int main(void)
 		
 		/*==============================================================*/
 		/* Displaying buttons	*/
-		if(control_mode_changed)
-		{
+//		if(control_mode_changed)
+//		{
 			BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
 			if(control_mode == AUTO)
 				BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -425,33 +457,60 @@ int main(void)
 			sprintf(text," - 1 ");
 			BSP_LCD_DisplayStringAt(right_buttons_x + 10, down_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
 			
-			control_mode_changed = false;
-		}	
+//			control_mode_changed = false;
+//		}	
 		
 		/*==============================================================*/
 		/* Displaying alarm */
-		if(Temp_alarm_changed)
-		{
+//		if(Temp_alarm_changed)
+//		{
 			if(Temp_alarm)
 			{
 				BSP_LCD_SetTextColor(LCD_COLOR_RED); 
-				BSP_LCD_FillCircle(200, 20, 10);
+				BSP_LCD_FillCircle(alarm_x, alarm_y, circle_rad);
 				BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
 				sprintf(text,"ALARM\nTemp. za niska!");
-				BSP_LCD_DisplayStringAt(200,40, (uint8_t*)text, LEFT_MODE);
+				BSP_LCD_DisplayStringAt(alarm_x,alarm_y+20, (uint8_t*)text, LEFT_MODE);
 			}
 			else
 			{
 				BSP_LCD_SetTextColor(LCD_COLOR_WHITE); 
-				BSP_LCD_FillCircle(200, 20, 10);
+				BSP_LCD_FillCircle(alarm_x, alarm_y, circle_rad);
 				BSP_LCD_SetTextColor(LCD_COLOR_BLACK); 
-				BSP_LCD_DrawCircle(200, 20, 10);
+				BSP_LCD_DrawCircle(alarm_x, alarm_y, circle_rad);
 				BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 				sprintf(text,"ALARM\nTemp. za niska!");
-				BSP_LCD_DisplayStringAt(200,40, (uint8_t*)text, LEFT_MODE);
+				BSP_LCD_DisplayStringAt(alarm_x,alarm_y+20, (uint8_t*)text, LEFT_MODE);
 			}	
-			Temp_alarm_changed = false;
-		}
+//			Temp_alarm_changed = false;
+//		}
+			
+		/*==============================================================*/
+		/* Displaying failure */
+//		if(Temp_sensor_fail_changed)
+//		{
+			if(Temp_sensor_fail)
+			{
+				BSP_LCD_SetTextColor(LCD_COLOR_RED); 
+				BSP_LCD_FillCircle(sensor_err_x, sensor_err_y, circle_rad);
+				BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+				sprintf(text,"Temp. sensor ERROR!");
+				BSP_LCD_DisplayStringAt(sensor_err_x,sensor_err_y+20, (uint8_t*)text, LEFT_MODE);
+			}
+			else
+			{
+				BSP_LCD_SetTextColor(LCD_COLOR_WHITE); 
+				BSP_LCD_FillCircle(sensor_err_x, sensor_err_y, circle_rad);
+				BSP_LCD_SetTextColor(LCD_COLOR_BLACK); 
+				BSP_LCD_DrawCircle(sensor_err_x, sensor_err_y, circle_rad);
+				BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+				sprintf(text,"Temp. sensor ERROR!");
+				BSP_LCD_DisplayStringAt(sensor_err_x,sensor_err_y+20, (uint8_t*)text, LEFT_MODE);
+			}	
+//			Temp_alarm_changed = false;
+//		}
+		
+		
 	}
 }
 
@@ -580,15 +639,21 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 			Sterowanie = u;
 		}
 		
+		if( (y < -55.0f) || (y > 125.0f) )
+			Temp_sensor_fail = true;
+		else
+			Temp_sensor_fail = false;
+		
+		
 		if(y < 24)
 		{
 			Temp_alarm = true;
-			Temp_alarm_changed = true;
+//			Temp_alarm_changed = true;
 		}
 		else
 		{
 			Temp_alarm = false;
-			Temp_alarm_changed = true;
+//			Temp_alarm_changed = true;
 		}
 		
 		Wart_zadana = Y_zad;
