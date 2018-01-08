@@ -54,33 +54,6 @@ UART_HandleTypeDef huartmb;
 int tims[7] = {0};
 TS_StateTypeDef TS_State;
 uint8_t touch_index = 0;
-uint32_t ts_colors[] = {
-	LCD_COLOR_BLUE          ,
-	LCD_COLOR_GREEN         ,
-	LCD_COLOR_RED           ,
-	LCD_COLOR_CYAN          ,
-	LCD_COLOR_MAGENTA       ,
-	LCD_COLOR_YELLOW        ,
-	LCD_COLOR_LIGHTBLUE     ,
-	LCD_COLOR_LIGHTGREEN    ,
-	LCD_COLOR_LIGHTRED      ,
-	LCD_COLOR_LIGHTCYAN     ,
-	LCD_COLOR_LIGHTMAGENTA  ,
-	LCD_COLOR_LIGHTYELLOW   ,
-	LCD_COLOR_DARKBLUE      ,
-	LCD_COLOR_DARKGREEN     ,
-	LCD_COLOR_DARKRED       ,
-	LCD_COLOR_DARKCYAN      ,
-	LCD_COLOR_DARKMAGENTA   ,
-	LCD_COLOR_DARKYELLOW    ,
-	LCD_COLOR_WHITE         ,
-	LCD_COLOR_LIGHTGRAY     ,
-	LCD_COLOR_GRAY          ,
-	LCD_COLOR_DARKGRAY      ,
-	LCD_COLOR_BLACK         ,
-	LCD_COLOR_BROWN         ,
-	LCD_COLOR_ORANGE        
-};
 char text[100] = {0};
 
 /* Private variables ---------------------------------------------------------*/
@@ -151,23 +124,36 @@ void Disable50usTimer(void){
 
 
 
+
 /* Private function prototypes -----------------------------------------------*/
+
+uint16_t v_range[2] = {0, 4095};
+
+/*=================================*/
+/* Text variables */
+uint16_t y_text;
+
+uint16_t left_x_text;
+uint16_t right_x_text;
+
+
+/*=================================*/
+/* Plot variables */
 uint16_t plot_x_min;
 uint16_t plot_x_max;
 uint16_t plot_y_min;
 uint16_t plot_y_max;
-uint16_t zakres_y_min;
-uint16_t zakres_y_max;
 
-uint16_t v_range[2] = {0, 4095};
+uint16_t 	base_y;
 
 uint16_t	x;
 uint16_t	y_wyj;
 uint16_t	y_ster;
 uint16_t	y_zad;
 
-uint16_t 	base_y;
 
+/*=================================*/
+/* Buttons variables */
 uint16_t button_width;
 uint16_t button_height;
 	
@@ -177,8 +163,9 @@ uint16_t right_buttons_x;
 uint16_t up_buttons_y;
 uint16_t down_buttons_y;
 
+
 /*=================================*/
-// Dodatkowe zmienne
+/* Other variables */
 
 float Sterowanie;
 float Wart_zadana;
@@ -187,6 +174,7 @@ float U_set;
 float Y_zad;
 
 bool Temp_alarm;
+bool Temp_alarm_changed;
 
 #define REAL_OBJ		0
 #define SIMULATION	1
@@ -194,7 +182,8 @@ int mode;
 
 #define AUTO		0
 #define MANUAL	1
-int control_mode;
+int  control_mode;
+bool control_mode_changed;
 
 // Przyciski do manipulacji wartosci
 #define STER_PLUS		0
@@ -202,10 +191,11 @@ int control_mode;
 #define ZAD_PLUS		2
 #define ZAD_MINUS		3
 
-//=================================
+/*===========================================================================*/
 
 int main(void)
 {
+	{
   HAL_Init();
   SystemClock_Config();
   MX_GPIO_Init();
@@ -258,23 +248,16 @@ int main(void)
 	HAL_Delay(900);
 	
 	HAL_NVIC_EnableIRQ(TIM2_IRQn);
-	
+	}
 	
 	//====================================================================================
-	//====================================================================================
-	
-	
-	/*==============================================================*/
-	/* Text */
-	uint16_t y_text = BSP_LCD_GetYSize() / 20;
-
-	uint16_t left_x_text = (uint16_t)BSP_LCD_GetXSize() / 4;
-	uint16_t right_x_text = 3 * (uint16_t)BSP_LCD_GetXSize() / 4;
-
-	BSP_LCD_DrawVLine(BSP_LCD_GetXSize() / 2, 0, BSP_LCD_GetYSize());
-
 	/*==============================================================*/
 	/* Displaying text */
+	y_text = BSP_LCD_GetYSize() / 20;
+
+	left_x_text = (uint16_t)BSP_LCD_GetXSize() / 4;
+	right_x_text = 3 * (uint16_t)BSP_LCD_GetXSize() / 4;
+	
 	BSP_LCD_SetTextColor(LCD_COLOR_RED);
 	BSP_LCD_DisplayStringAt(left_x_text, y_text, "PANEL STEROWANIA", LEFT_MODE);
 	BSP_LCD_DisplayStringAt(right_x_text, y_text, "WYKRES I DANE", LEFT_MODE);
@@ -284,8 +267,9 @@ int main(void)
 	BSP_LCD_DisplayStringAt(BSP_LCD_GetXSize()/32, down_buttons_y - 20, "Sterowanie", LEFT_MODE);
 	
 	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-	BSP_LCD_DrawLine(x, zakres_y_min, x, zakres_y_max);
+	BSP_LCD_DrawLine(x, plot_y_min, x, plot_y_max);
 	
+	BSP_LCD_DrawVLine(BSP_LCD_GetXSize() / 2, 0, BSP_LCD_GetYSize());
 	
 	/*==============================================================*/
 	/* Buttons data */
@@ -303,40 +287,32 @@ int main(void)
 	/* Plot data */
 	plot_x_min = BSP_LCD_GetXSize() / 2;
 	plot_x_max = BSP_LCD_GetXSize();
-	plot_y_min = BSP_LCD_GetYSize() / 2;
-	plot_y_max = BSP_LCD_GetYSize() / 2;
+	plot_y_min = 0.15*BSP_LCD_GetYSize();
+	plot_y_max = 0.85*BSP_LCD_GetYSize();
 	
 	x = plot_x_min;
 	
-	base_y = (zakres_y_max + 3*zakres_y_min)/4;
+	base_y = (plot_y_max + 3*plot_y_min)/4;
 	
 	y_wyj = 0;
 	y_ster = 0;
 	y_zad = 0;
 	
-	zakres_y_min = 0.15*BSP_LCD_GetYSize();
-	zakres_y_max = 0.85*BSP_LCD_GetYSize();
-	
-	
 	
 	/*===============================*/
-	// Init project vars
+	/* Other variables init */
 	
-	mode = REAL_OBJ;
+	mode 				 = REAL_OBJ;
 	control_mode = AUTO;
 	Sterowanie  = 0.0;
 	Y_zad				= 30.0;
 	
 	Temp_alarm = false;
+	Temp_alarm_changed = false;
+		
+	control_mode_changed = false;
 	
-//	int t = 0;
-//	//int y = 0;
-//	bool flag = 0;
-//	bool touched = 0;
-//	
-//	int prev = 0;
-//	int act = 0;
-	/*===============================*/
+	/*==============================================================*/
 	
   while (1)
 	{
@@ -348,7 +324,7 @@ int main(void)
 				for(int i = BSP_LCD_GetXSize() / 2; i < BSP_LCD_GetXSize(); i++)
 				{
 					BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-					BSP_LCD_DrawLine(i, zakres_y_min, i, zakres_y_max);
+					BSP_LCD_DrawLine(i, plot_y_min, i, plot_y_max);
 					x = plot_x_min;
 				}
 			} 
@@ -385,9 +361,15 @@ int main(void)
 		{
 			while(BSP_PB_GetState(BUTTON_TAMPER));
 			if(control_mode == AUTO)
+			{
 				control_mode = MANUAL;
+				control_mode_changed = true;
+			}
 			else
+			{
 				control_mode = AUTO;
+				control_mode_changed = true;
+			}
 		}												 
 		
 		/*==============================================================*/
@@ -414,54 +396,62 @@ int main(void)
 		
 		/*==============================================================*/
 		/* Displaying buttons	*/
-		BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-		if(control_mode == AUTO)
+		if(control_mode_changed)
+		{
 			BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-		else
-			BSP_LCD_SetTextColor(LCD_COLOR_RED);
-	
-		BSP_LCD_DrawRect(left_buttons_x , up_buttons_y  , button_width, button_height);		// lewy górny
-		sprintf(text," + 1 ");
-		BSP_LCD_DisplayStringAt(left_buttons_x + 10, up_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
+			if(control_mode == AUTO)
+				BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+			else
+				BSP_LCD_SetTextColor(LCD_COLOR_RED);
 		
-		BSP_LCD_DrawRect(right_buttons_x, up_buttons_y  , button_width, button_height);		// prawy górny
-		sprintf(text," - 1 ");
-		BSP_LCD_DisplayStringAt(right_buttons_x + 10, up_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
+			BSP_LCD_DrawRect(left_buttons_x , up_buttons_y  , button_width, button_height);		// lewy górny
+			sprintf(text," + 1 ");
+			BSP_LCD_DisplayStringAt(left_buttons_x + 10, up_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
+			
+			BSP_LCD_DrawRect(right_buttons_x, up_buttons_y  , button_width, button_height);		// prawy górny
+			sprintf(text," - 1 ");
+			BSP_LCD_DisplayStringAt(right_buttons_x + 10, up_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
 
-		if(control_mode == AUTO)
-			BSP_LCD_SetTextColor(LCD_COLOR_RED);
-		else
-			BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-		
-		BSP_LCD_DrawRect(left_buttons_x , down_buttons_y, button_width, button_height);		// lewy dolny
-		sprintf(text," + 1 ");
-		BSP_LCD_DisplayStringAt(left_buttons_x + 10, down_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
-		
-		BSP_LCD_DrawRect(right_buttons_x, down_buttons_y, button_width, button_height);		// prawy dolny
-		sprintf(text," - 1 ");
-		BSP_LCD_DisplayStringAt(right_buttons_x + 10, down_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
-		
+			if(control_mode == AUTO)
+				BSP_LCD_SetTextColor(LCD_COLOR_RED);
+			else
+				BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+			
+			BSP_LCD_DrawRect(left_buttons_x , down_buttons_y, button_width, button_height);		// lewy dolny
+			sprintf(text," + 1 ");
+			BSP_LCD_DisplayStringAt(left_buttons_x + 10, down_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
+			
+			BSP_LCD_DrawRect(right_buttons_x, down_buttons_y, button_width, button_height);		// prawy dolny
+			sprintf(text," - 1 ");
+			BSP_LCD_DisplayStringAt(right_buttons_x + 10, down_buttons_y + button_height/2, (uint8_t*)text, LEFT_MODE);
+			
+			control_mode_changed = false;
+		}	
 		
 		/*==============================================================*/
 		/* Displaying alarm */
-		if(Temp_alarm)
+		if(Temp_alarm_changed)
 		{
-			BSP_LCD_SetTextColor(LCD_COLOR_RED); 
-			BSP_LCD_FillCircle(200, 20, 10);
-			BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-			sprintf(text,"ALARM\nTemp. za niska!");
-			BSP_LCD_DisplayStringAt(200,40, (uint8_t*)text, LEFT_MODE);
+			if(Temp_alarm)
+			{
+				BSP_LCD_SetTextColor(LCD_COLOR_RED); 
+				BSP_LCD_FillCircle(200, 20, 10);
+				BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+				sprintf(text,"ALARM\nTemp. za niska!");
+				BSP_LCD_DisplayStringAt(200,40, (uint8_t*)text, LEFT_MODE);
+			}
+			else
+			{
+				BSP_LCD_SetTextColor(LCD_COLOR_WHITE); 
+				BSP_LCD_FillCircle(200, 20, 10);
+				BSP_LCD_SetTextColor(LCD_COLOR_BLACK); 
+				BSP_LCD_DrawCircle(200, 20, 10);
+				BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+				sprintf(text,"ALARM\nTemp. za niska!");
+				BSP_LCD_DisplayStringAt(200,40, (uint8_t*)text, LEFT_MODE);
+			}	
+			Temp_alarm_changed = false;
 		}
-		else
-		{
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE); 
-			BSP_LCD_FillCircle(200, 20, 10);
-			BSP_LCD_SetTextColor(LCD_COLOR_BLACK); 
-			BSP_LCD_DrawCircle(200, 20, 10);
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			sprintf(text,"ALARM\nTemp. za niska!");
-			BSP_LCD_DisplayStringAt(200,40, (uint8_t*)text, LEFT_MODE);
-		}	
 	}
 }
 
@@ -515,15 +505,13 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	// Wywolywane w chwili wcisniecia przycisku User			
+	// Wywolywane w chwili wcisniecia przycisku User	
+	
 }
-
 
 
 /*===============================*/
 // Zmienne dla regulatora 
-
-
 float e;
 float u_past;
 
@@ -532,7 +520,6 @@ float Ke;
 float Ku;
 float Ku_mul_dUp[1];
 float dUp[1][1];
-
 
 
 /*===============================*/
@@ -594,9 +581,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		}
 		
 		if(y < 24)
+		{
 			Temp_alarm = true;
+			Temp_alarm_changed = true;
+		}
 		else
+		{
 			Temp_alarm = false;
+			Temp_alarm_changed = true;
+		}
 		
 		Wart_zadana = Y_zad;
 		Wyjscie = y;
@@ -645,31 +638,26 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if (htim->Instance == TIM4){ // timer odpowiedzialny za odliczanie kwantow 50us
 		Timer50usTick();
 	}
-	if(htim->Instance == TIM5 ) 
+	if(htim->Instance == TIM5 ) // Updating plot data once every second
 	{
 		x = (x == plot_x_max)? plot_x_min : x + 1;
 		
-//		y_wyj  =  base_y 	 +   (Wyjscie/90.0)     * ((3*zakres_y_max + 5*zakres_y_min)/4);
-//		y_ster =  base_y 	 + 	 (Sterowanie/90.0)  * ((3*zakres_y_max + 5*zakres_y_min)/4);
-//		y_zad  =  base_y 	 - 	 (Wart_zadana/90.0) * ((3*zakres_y_max + 5*zakres_y_min)/4);
+//		y_wyj  =  base_y 	 +   (Wyjscie/90.0)     * ((3*plot_y_max + 5*plot_y_min)/4);
+//		y_ster =  base_y 	 + 	 (Sterowanie/90.0)  * ((3*plot_y_max + 5*plot_y_min)/4);
+//		y_zad  =  base_y 	 - 	 (Wart_zadana/90.0) * ((3*plot_y_max + 5*plot_y_min)/4);
 
 		
-		y_wyj  = (zakres_y_max - zakres_y_min) / 4; 				//+ Wyjscie;
-		y_ster = (zakres_y_max - zakres_y_min) / 4 + 20;	  //+ (Sterowanie*(zakres_y_max - zakres_y_min))/100; 
-		y_zad  = (zakres_y_max - zakres_y_min) / 4 - 20;		//+ Wart_zadana;
+		y_wyj  = (plot_y_max - plot_y_min) / 4; 				//+ Wyjscie;
+		y_ster = (plot_y_max - plot_y_min) / 4 + 20;	  //+ (Sterowanie*(plot_y_max - plot_y_min))/100; 
+		y_zad  = (plot_y_max - plot_y_min) / 4 - 20;		//+ Wart_zadana;
 		
 		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-	  BSP_LCD_DrawLine(x, zakres_y_min, x, zakres_y_max);
+	  BSP_LCD_DrawLine(x, plot_y_min, x, plot_y_max);
 		BSP_LCD_DrawPixel(x, y_wyj, LCD_COLOR_RED);
 		BSP_LCD_DrawPixel(x, y_ster, LCD_COLOR_BLUE);
 		if(control_mode == AUTO)	BSP_LCD_DrawPixel(x, y_zad, LCD_COLOR_YELLOW);
 	}
 }
-float Sterowanie;
-float Wart_zadana;
-float Wyjscie;
-float U_set;
-float Y_zad;
 
 void HAL_LTDC_LineEvenCallback(LTDC_HandleTypeDef *hltdc){
 	// for lolz
